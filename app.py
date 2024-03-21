@@ -6,6 +6,7 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_mail import Mail, Message
 from flask_wtf import CSRFProtect 
+import threading
 
 # opening config file
 with open("config.json", "r") as f:
@@ -60,27 +61,14 @@ else:
     # Disable Flask-Admin in other environments
     pass
 
-# functions for mailing
-def mail_to_owner(sender, owner):
-    msg = Message(
-            'Hello',
-            sender = sender,
-            recipients = [owner]
-            )
-    msg.body = 'I am hero'
-    msg.html = "<h1>mail send to owner</h1>"
-    mail.send(msg)
+# functions for mailing using threads
+def mail_to_owner(msg):
+    with app.app_context():
+        mail.send(msg)
 
-def mail_to_sender(owner,sender):
-    msg = Message(
-            'Hello',
-            sender = owner,
-            recipients = [sender]
-            )
-    msg.body = 'I am hero'
-    msg.html = "mail send to sender"
-    mail.send(msg)
-
+def mail_to_sender(msg):
+    with app.app_context():
+        mail.send(msg)
 
 @app.route('/')
 def hello_world():
@@ -97,9 +85,28 @@ def contact():
             contact = Contact(name=name, email=email, desc=desc)
             db.session.add(contact)
             db.session.commit()      
-            # owner email
-            mail_to_owner(email, "luxmotivatelife@gmail.com")
-            mail_to_sender("luxmotivatelife@gmail.com", email)
+            # mailing to owner
+            owner = "luxmotivatelife@gmail.com"
+            msg = Message(
+                'Hello',
+                sender = email,
+                recipients = [owner]
+                )
+            msg.body = 'I am hero'
+            msg.html = "<h1>mail send to owner</h1>"
+            t1 = threading.Thread(target=mail_to_owner, args=[msg])
+            t1.start()           
+
+            # mailing to sender
+            msg = Message(
+                'Hello',
+                sender = owner,
+                recipients = [email]
+                )
+            msg.body = 'I am hero'
+            msg.html = "mail send to sender"
+            t1 = threading.Thread(target=mail_to_sender, args=[msg])
+            t1.start()
         except Exception as e:
             flash("Some error occured while submiting your credential")
         else:
