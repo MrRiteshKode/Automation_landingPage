@@ -86,7 +86,7 @@ def contact():
             db.session.add(contact)
             db.session.commit()      
             # mailing to owner
-            owner = "luxmotivatelife@gmail.com"
+            owner = "OWNER-EMAIL-ID"
             msg = Message(
                 'Hello',
                 sender = email,
